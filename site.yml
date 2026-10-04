@@ -1,0 +1,51 @@
+---
+- name: Базовая настройка тестового сервера
+  hosts: lab
+  become: true
+  vars:
+    packages:
+      - htop
+      - curl
+      - tree
+      - git
+      - ansible
+    lab_dir: /opt/ansible-lab
+
+  tasks:
+    - name: Проверить связь
+      ansible.builtin.ping:
+
+    - name: Показать информацию о хосте
+      ansible.builtin.debug:
+        msg: >-
+          {{ inventory_hostname }} ({{ ansible_host }}):
+          {{ ansible_distribution }} {{ ansible_distribution_version }},
+          RAM {{ ansible_memtotal_mb }} MB
+
+    - name: Установить пакеты
+      ansible.builtin.apt:
+        name: "{{ packages }}"
+        state: present
+        update_cache: true
+        cache_valid_time: 3600
+
+    - name: Создать каталог
+      ansible.builtin.file:
+        path: "{{ lab_dir }}"
+        state: directory
+        mode: "0755"
+
+    - name: Записать файл с информацией
+      ansible.builtin.copy:
+        dest: "{{ lab_dir }}/info.txt"
+        mode: "0644"
+        content: |
+          Хост настроен через Ansible
+          Имя: {{ inventory_hostname }}
+          ОС: {{ ansible_distribution }} {{ ansible_distribution_version }}
+      notify: Сообщить об изменении
+
+  handlers:
+    - name: Сообщить об изменении
+      ansible.builtin.debug:
+        msg: "Файл info.txt был изменён"
